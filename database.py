@@ -130,3 +130,6 @@ class Tasks(Database):
     def add(self, name, start_time, end_time, user_id, desc):
         self.insert_into(table_name=self.table, user_id=user_id, name=name, start_time=start_time, end_time=end_time,
                          desc=desc, )
+
+    def show(self, user_id):
+        return self.select(table_name=self.table, fetchone=False, columns=['name', 'start_time', 'end_time', 'desc'], user_id = user_id, )
