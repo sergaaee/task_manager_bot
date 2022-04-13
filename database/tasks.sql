@@ -5,6 +5,6 @@ create TABLE "tasks" (
     name text,
     start_time text,
     end_time text,
-    user_id integer unique,
+    user_id integer,
     desc text
 )

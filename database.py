@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import logging
 import sqlite3
 
@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 class Database:
     def __init__(self):
-        self._con = sqlite3.connect('db.sqlite3')
+        self._con = sqlite3.connect('database/db')
 
     def insert_into(self, table_name, **kwargs) -> bool:
         cursor = self._con.cursor()
@@ -117,14 +117,14 @@ class Database:
 class Users(Database):
     table = 'Users'
 
-    def add(self, telegram_id, fio):
+    def add(self, telegram_id, nick):
         if self.check(table_name=self.table, id=telegram_id):
             return False
         else:
-            self.insert_into(table_name=self.table, id=telegram_id, fio=fio, reg_date=datetime.datetime.now())
+            self.insert_into(table_name=self.table, id=telegram_id, nick=nick, reg_date=datetime.now().__str__())
 
 
-class Tasks(Users):
+class Tasks(Database):
     table = "Tasks"
 
     def add(self, name, start_time, end_time, user_id, desc):
