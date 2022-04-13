@@ -1,7 +1,5 @@
-import time
 
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
-
 from database import Users, Tasks
 from settings import token
 import logging
@@ -62,7 +60,8 @@ async def get_desc(message: types.Message, state: FSMContext):
     data = await state.get_data()
     await state.finish()
 
-    print(data)
+    Tasks().add(name=data['name'], user_id= message.from_user.id, start_time=data['stime'], end_time=data['etime'], desc=data['desc'],)
+    await message.answer("Success!")
 
 
 if __name__ == '__main__':
