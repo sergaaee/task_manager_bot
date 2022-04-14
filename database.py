@@ -124,7 +124,7 @@ class Users(Database):
             self.insert_into(table_name=self.table, id=telegram_id, fio=fio, reg_date=datetime.datetime.now())
 
 
-class Tasks(Users):
+class Tasks(Database):
     table = "Tasks"
 
     def add(self, name, start_time, end_time, user_id, desc):
