@@ -128,11 +128,13 @@ class Tasks(Database):
     table = "Tasks"
 
     def addt(self, name, start_time, end_time, user_id, desc, date):
-        return self.insert_into(table_name=self.table, user_id=user_id, date = date, name=name, start_time=start_time, end_time=end_time,
-                         desc=desc, )
+        return self.insert_into(table_name=self.table, user_id=user_id, date=date, name=name, start_time=start_time,
+                                end_time=end_time,
+                                desc=desc, )
 
     def showt(self, user_id, date):
-        return self.select(table_name=self.table, fetchone=False, columns=['name', 'start_time', 'end_time', 'desc'], user_id = user_id, date=date )
+        return self.select(table_name=self.table, fetchone=False, columns=['name', 'start_time', 'end_time', 'desc'],
+                           user_id=user_id, date=date)
 
     def delt(self, date, name):
-        return self.delete(table_name=self.table, date = date, name = name,)
+        return self.delete(table_name=self.table, date=date, name=name, )

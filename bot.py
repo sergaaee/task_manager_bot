@@ -3,6 +3,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from database import Users, Tasks
 from settings import *
 import logging
+from aiogram.dispatcher.filters import Text
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
@@ -32,6 +33,20 @@ async def send_welcome(message: types.Message):
 
 
 # adding new task
+
+# cancel any state
+
+@dp.message_handler(state = "*", commands="cancel")
+@dp.message_handler(Text(equals="cancel", ignore_case=True), state="*")
+async def cancel_handler (message: types.Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state is None:
+        return
+
+    logging.info('Cancelling state %r', current_state)
+    await message.answer("You cancelled operation.")
+    await state.finish()
+
 
 
 @dp.message_handler(state=TaskForm.name)
@@ -67,7 +82,7 @@ async def get_desc(message: types.Message, state: FSMContext):
     await state.finish()
     Tasks().addt(name=data['name'], start_time=data['stime'], end_time=data['etime'], user_id=message.from_user.id,
                  desc=data['desc'], date=date)
-    await message.answer("Success!")
+    await message.answer("Successfully added")
     nt = False
 
 
@@ -101,7 +116,7 @@ async def get_name_of_del(message: types.Message, state: FSMContext):
     await state.update_data(name = name)
     data = await state.get_data()  # return dictionary {'name':'name'}
     Tasks().delt(date=date, name=data['name'])
-    await message.answer("Success")
+    await message.answer("Successfully deleted.")
     await state.finish()
 
 
@@ -122,9 +137,16 @@ async def process_dialog_calendar(callback_query: CallbackQuery, callback_data: 
 
         @dp.message_handler()
         async def catcher(message: types.Message):
+            # asking if user correctly selected date
             if message.text == "y" or message.text == "Y":
                 global date, st, nt, dt
-                date = date.strftime("%d/%m/%Y")
+                # checking if user have any tasks for selected date
+                try:
+                    date = date.strftime("%d/%m/%Y")
+                except AttributeError:
+                    await message.answer("You don't have any tasks for selected date.")
+                    st, nt, dt = False
+                    return
                 if nt:
                     await TaskForm.name.set()
                     await callback_query.message.answer("Name your task:")
