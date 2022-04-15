@@ -1,2 +1,5 @@
 /database/database.db
 /database.db
+*.xml
+.idea/task_manager.iml
+*.pyc
