@@ -7,6 +7,10 @@ logger = logging.getLogger(__name__)
 
 class Database:
     def __init__(self) -> object:
+        """
+
+        :rtype: object
+        """
         self._con = sqlite3.connect('database/db')
 
     def insert_into(self, table_name, **kwargs) -> bool:
@@ -70,7 +74,7 @@ class Database:
             cursor.close()
         return True
 
-    def update(self, table_name, columns: dict, **kwargs) -> bool:
+    def update(self, table_name: object, columns: dict, **kwargs: object) -> bool:
         cursor = self._con.cursor()
         keys = []
         values = []

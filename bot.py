@@ -1,4 +1,4 @@
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from database import Users, Tasks, Database
 from settings import *
@@ -44,6 +44,7 @@ async def first_button(message: types.Message):
     await message.answer("Choose:", reply_markup=inline_kb_choose)
 
 
+# new task
 @dp.callback_query_handler(lambda c: c.data == 'nt')
 async def new_task(callback_query: types.CallbackQuery):
     Database().update(table_name="Users", columns={"selected_command": "nt"}, id=callback_query.from_user.id)
@@ -52,32 +53,6 @@ async def new_task(callback_query: types.CallbackQuery):
     await simple_cal_handler(callback_query.from_user.id)
 
 
-# show tasks
-@dp.callback_query_handler(lambda c: c.data == "st")
-async def find_tasks(callback_query: types.CallbackQuery):
-    Database().update(table_name="Users", columns={"selected_command": "st"}, id=callback_query.from_user.id)
-    await bot.answer_callback_query(callback_query.id)
-    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-    await simple_cal_handler(user_id=callback_query.from_user.id)
-
-
-async def show_tasks(callback_query):
-    date = \
-        Database().select(table_name="Users", fetchone=True, id=callback_query.from_user.id,
-                          columns=["selected_date"])[
-            0]
-    data = Tasks().showt(user_id=callback_query.from_user.id, date=date)
-    result = []
-    if len(result) == 0:
-        await bot.send_message(chat_id=callback_query.from_user.id, text="You don't have any task for selected date.")
-        return
-    for each in data:
-        result.append("Name: " + each[0] + ",\nstarts at: " + each[1] + ",\nends at: " + each[2] + ",\n" + each[3])
-    for i in result:
-        await bot.send_message(chat_id=callback_query.from_user.id, text=i)
-
-
-# adding new task
 @dp.message_handler(state=TaskForm.name)
 async def get_name(message: types.Message, state: FSMContext):
     name = message.text
@@ -114,7 +89,56 @@ async def get_desc(message: types.Message, state: FSMContext):
     await message.answer("Successfully added")
 
 
+# show tasks
+@dp.callback_query_handler(lambda c: c.data == "st")
+async def find_tasks(callback_query: types.CallbackQuery):
+    Database().update(table_name="Users", columns={"selected_command": "st"}, id=callback_query.from_user.id)
+    await bot.answer_callback_query(callback_query.id)
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+    await simple_cal_handler(user_id=callback_query.from_user.id)
+
+
+async def show_tasks(callback_query):
+    date = \
+        Database().select(table_name="Users", fetchone=True, id=callback_query.from_user.id,
+                          columns=["selected_date"])[
+            0]
+    data = Tasks().showt(user_id=callback_query.from_user.id, date=date)
+    result = []
+    if len(result) == 0:
+        await bot.send_message(chat_id=callback_query.from_user.id, text="You don't have any task for selected date.")
+        return
+    for each in data:
+        result.append("Name: " + each[0] + ",\nstarts at: " + each[1] + ",\nends at: " + each[2] + ",\n" + each[3])
+    for i in result:
+        await bot.send_message(chat_id=callback_query.from_user.id, text=i)
+
+
+# delete task
+@dp.callback_query_handler(lambda c: c.data == "dt")
+async def del_task(callback_query: types.CallbackQuery):
+    Database().update(table_name="Users", columns={"selected_command": "dt"}, id=callback_query.from_user.id)
+    await bot.answer_callback_query(callback_query.id)
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+    await simple_cal_handler(callback_query.from_user.id)
+
+
+async def delete_task(callback_query):
+    date = \
+        Database().select(table_name="Users", fetchone=True, id=callback_query.from_user.id,
+                          columns=["selected_date"])[
+            0]
+    names = Database().select(table_name="Tasks", user_id=callback_query.from_user.id, columns=["name"], date=date)
+    inline_kb_delete = InlineKeyboardMarkup()
+    if len(names) == 0:
+        await bot.send_message(chat_id=callback_query.from_user.id, text="You don't have any tasks for this day.")
+        return
+    for i in names:
+        inline_kb_delete.add(InlineKeyboardButton(text=i[0], callback_data=i[0])) # gotta fix a problem w/ callback_data
+    await bot.send_message(chat_id=callback_query.from_user.id, text="Choose task to delete:", reply_markup=inline_kb_delete)
+
 # cancel any state
+
 
 @dp.message_handler(state="*", commands="cancel")
 @dp.message_handler(Text(equals="cancel", ignore_case=True), state="*")
@@ -152,6 +176,8 @@ async def y_agree(callback_query: types.CallbackQuery):
         await TaskForm.name.set()
     elif selected_command == "st":
         await show_tasks(callback_query=callback_query)
+    elif selected_command == "dt":
+        await delete_task(callback_query=callback_query)
 
 
 @dp.callback_query_handler(lambda c: c.data == "no")
