@@ -45,12 +45,36 @@ async def first_button(message: types.Message):
 
 
 @dp.callback_query_handler(lambda c: c.data == 'nt')
-async def process_callback_button1(callback_query: types.CallbackQuery):
+async def new_task(callback_query: types.CallbackQuery):
     Database().update(table_name="Users", columns={"selected_command": "nt"}, id=callback_query.from_user.id)
     await bot.answer_callback_query(callback_query.id)
     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-    # await bot.send_message(callback_query.from_user.id, text="Enter name of a task:")
     await simple_cal_handler(callback_query.from_user.id)
+
+
+# show tasks
+@dp.callback_query_handler(lambda c: c.data == "st")
+async def find_tasks(callback_query: types.CallbackQuery):
+    Database().update(table_name="Users", columns={"selected_command": "st"}, id=callback_query.from_user.id)
+    await bot.answer_callback_query(callback_query.id)
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+    await simple_cal_handler(user_id=callback_query.from_user.id)
+
+
+async def show_tasks(callback_query):
+    date = \
+        Database().select(table_name="Users", fetchone=True, id=callback_query.from_user.id,
+                          columns=["selected_date"])[
+            0]
+    data = Tasks().showt(user_id=callback_query.from_user.id, date=date)
+    result = []
+    if len(result) == 0:
+        await bot.send_message(chat_id=callback_query.from_user.id, text="You don't have any task for selected date.")
+        return
+    for each in data:
+        result.append("Name: " + each[0] + ",\nstarts at: " + each[1] + ",\nends at: " + each[2] + ",\n" + each[3])
+    for i in result:
+        await bot.send_message(chat_id=callback_query.from_user.id, text=i)
 
 
 # adding new task
@@ -112,20 +136,22 @@ async def simple_cal_handler(user_id):
 
 
 # dialog calendar usage
-ib_y = InlineKeyboardButton(text="Yes", callback_data="yes")
-ib_n = InlineKeyboardButton(text="No", callback_data="no")
+ib_y = InlineKeyboardButton(text="✅", callback_data="yes")
+ib_n = InlineKeyboardButton(text="❌", callback_data="no")
 ikb_agree = InlineKeyboardMarkup().add(ib_y, ib_n)
 
 
 @dp.callback_query_handler(lambda c: c.data == 'yes')
 async def y_agree(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
-    await bot.send_message(callback_query.from_user.id, text="Enter name of a task:")
     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
     selected_command = Database().select(table_name="Users", fetchone=True, id=callback_query.from_user.id,
                                          columns=["selected_command"])[0]
     if selected_command == "nt":
+        await bot.send_message(callback_query.from_user.id, text="Enter name of a task:")
         await TaskForm.name.set()
+    elif selected_command == "st":
+        await show_tasks(callback_query=callback_query)
 
 
 @dp.callback_query_handler(lambda c: c.data == "no")

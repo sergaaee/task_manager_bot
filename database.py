@@ -132,7 +132,7 @@ class Tasks(Database):
                                 end_time=end_time,
                                 desc=desc, )
 
-    def showt(self, user_id, date):
+    def showt(self, user_id: object, date: object) -> object:
         return self.select(table_name=self.table, fetchone=False, columns=['name', 'start_time', 'end_time', 'desc'],
                            user_id=user_id, date=date)
 
