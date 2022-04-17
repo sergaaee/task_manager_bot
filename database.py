@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 class Database:
-    def __init__(self):
+    def __init__(self) -> object:
         self._con = sqlite3.connect('database/db')
 
     def insert_into(self, table_name, **kwargs) -> bool:

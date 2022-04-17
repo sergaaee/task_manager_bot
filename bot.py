@@ -33,7 +33,7 @@ async def send_welcome(message: types.Message):
 
 
 # choose menu
-ib_nt = InlineKeyboardButton("Add new task", callback_data="nt")
+ib_nt = InlineKeyboardButton("Add task", callback_data="nt")
 ib_st = InlineKeyboardButton("Show tasks", callback_data="st")
 ib_dt = InlineKeyboardButton("Delete task", callback_data="dt")
 inline_kb_choose = InlineKeyboardMarkup().add(ib_nt, ib_st, ib_dt)
@@ -46,6 +46,7 @@ async def first_button(message: types.Message):
 
 @dp.callback_query_handler(lambda c: c.data == 'nt')
 async def process_callback_button1(callback_query: types.CallbackQuery):
+    Database().update(table_name="Users", columns={"selected_command": "nt"}, id=callback_query.from_user.id)
     await bot.answer_callback_query(callback_query.id)
     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
     # await bot.send_message(callback_query.from_user.id, text="Enter name of a task:")
@@ -83,7 +84,7 @@ async def get_desc(message: types.Message, state: FSMContext):
     await state.update_data(desc=desc)
     data = await state.get_data()
     await state.finish()
-    date = Database().select(table_name="Users", fetchone=True, id = message.from_user.id, columns=["selected_date"])[0]
+    date = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["selected_date"])[0]
     Tasks().addt(name=data['name'], start_time=data['stime'], end_time=data['etime'], user_id=message.from_user.id,
                  desc=data['desc'], date=date)
     await message.answer("Successfully added")
@@ -91,9 +92,9 @@ async def get_desc(message: types.Message, state: FSMContext):
 
 # cancel any state
 
-@dp.message_handler(state = "*", commands="cancel")
+@dp.message_handler(state="*", commands="cancel")
 @dp.message_handler(Text(equals="cancel", ignore_case=True), state="*")
-async def cancel_handler (message: types.Message, state: FSMContext):
+async def cancel_handler(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     if current_state is None:
         return
@@ -106,7 +107,8 @@ async def cancel_handler (message: types.Message, state: FSMContext):
 # calendar
 
 async def simple_cal_handler(user_id):
-    await bot.send_message(text="Please select a date: ", chat_id=user_id, reply_markup=await DialogCalendar().start_calendar())
+    await bot.send_message(text="Please select a date: ", chat_id=user_id,
+                           reply_markup=await DialogCalendar().start_calendar())
 
 
 # dialog calendar usage
@@ -120,7 +122,10 @@ async def y_agree(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     await bot.send_message(callback_query.from_user.id, text="Enter name of a task:")
     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-    await TaskForm.name.set()
+    selected_command = Database().select(table_name="Users", fetchone=True, id=callback_query.from_user.id,
+                                         columns=["selected_command"])[0]
+    if selected_command == "nt":
+        await TaskForm.name.set()
 
 
 @dp.callback_query_handler(lambda c: c.data == "no")
@@ -135,7 +140,7 @@ async def process_dialog_calendar(callback_query: CallbackQuery, callback_data: 
     selected, date = await DialogCalendar().process_selection(callback_query, callback_data)
     if selected:
         date = date.strftime("%d/%m/%Y")
-        Database().update(table_name="Users", columns={"selected_date":date}, id=callback_query.from_user.id)
+        Database().update(table_name="Users", columns={"selected_date": date}, id=callback_query.from_user.id)
         await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
         await callback_query.message.answer(
             f'You selected {date},\nAre you sure?',
