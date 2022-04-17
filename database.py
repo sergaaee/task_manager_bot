@@ -121,7 +121,7 @@ class Users(Database):
         if self.check(table_name=self.table, id=telegram_id):
             return False
         else:
-            self.insert_into(table_name=self.table, id=telegram_id, nick=nick, reg_date=datetime.now().__str__())
+            self.insert_into(table_name=self.table, id=telegram_id, nick=nick, reg_date=datetime.now().__str__(),)
 
 
 class Tasks(Database):
