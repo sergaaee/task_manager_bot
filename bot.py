@@ -15,6 +15,7 @@ bot = Bot(token=token)
 dp = Dispatcher(bot, storage=storage)
 
 
+# forms for states
 class TaskForm(StatesGroup):
     name = State()
     stime = State()
@@ -101,17 +102,18 @@ async def find_tasks(callback_query: types.CallbackQuery):
 async def show_tasks(callback_query):
     date = \
         Database().select(table_name="Users", fetchone=True, id=callback_query.from_user.id,
-                          columns=["selected_date"])[
-            0]
+                          columns=["selected_date"])[0]
     data = Tasks().showt(user_id=callback_query.from_user.id, date=date)
+    print(date, data)
     result = []
+    for each in data:
+        result.append("name: " + each[0] + ",\nstarts at: " + each[1] + ",\nends at: " + each[2] + ",\n" + each[3])
     if len(result) == 0:
         await bot.send_message(chat_id=callback_query.from_user.id, text="You don't have any task for selected date.")
         return
-    for each in data:
-        result.append("Name: " + each[0] + ",\nstarts at: " + each[1] + ",\nends at: " + each[2] + ",\n" + each[3])
-    for i in result:
-        await bot.send_message(chat_id=callback_query.from_user.id, text=i)
+    else:
+        for i in result:
+            await bot.send_message(chat_id=callback_query.from_user.id, text=i)
 
 
 # delete task
@@ -126,25 +128,24 @@ async def del_task(callback_query: types.CallbackQuery):
 async def delete_task(callback_query):
     date = \
         Database().select(table_name="Users", fetchone=True, id=callback_query.from_user.id,
-                          columns=["selected_date"])[
-            0]
+                          columns=["selected_date"])[0]
     names = Database().select(table_name="Tasks", user_id=callback_query.from_user.id, columns=["name"], date=date)
     inline_kb_delete = InlineKeyboardMarkup()
     if len(names) == 0:
         await bot.send_message(chat_id=callback_query.from_user.id, text="You don't have any tasks for this day.")
         return
     for i in names:
-        inline_kb_delete.add(InlineKeyboardButton(text=i[0], callback_data=i[0])) # gotta fix a problem w/ callback_data
+        inline_kb_delete.add(InlineKeyboardButton(text=i[0], callback_data=i[0]))  # gotta fix a problem w/ callback_data
     await bot.send_message(chat_id=callback_query.from_user.id, text="Choose task to delete:", reply_markup=inline_kb_delete)
 
+
 # cancel any state
-
-
 @dp.message_handler(state="*", commands="cancel")
 @dp.message_handler(Text(equals="cancel", ignore_case=True), state="*")
 async def cancel_handler(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     if current_state is None:
+        await message.answer("There is no state to cancel")
         return
 
     logging.info('Cancelling state %r', current_state)
