@@ -42,6 +42,7 @@ inline_kb_choose = InlineKeyboardMarkup().add(ib_nt, ib_st, ib_dt)
 
 @dp.message_handler(commands=["t", "tasks"])
 async def first_button(message: types.Message):
+    await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
     await message.answer("Choose:", reply_markup=inline_kb_choose)
 
 
@@ -104,12 +105,11 @@ async def show_tasks(callback_query):
         Database().select(table_name="Users", fetchone=True, id=callback_query.from_user.id,
                           columns=["selected_date"])[0]
     data = Tasks().showt(user_id=callback_query.from_user.id, date=date)
-    print(date, data)
     result = []
     for each in data:
         result.append("name: " + each[0] + ",\nstarts at: " + each[1] + ",\nends at: " + each[2] + ",\n" + each[3])
     if len(result) == 0:
-        await bot.send_message(chat_id=callback_query.from_user.id, text="You don't have any task for selected date.")
+        await bot.send_message(chat_id=callback_query.from_user.id, text="You have no tasks for selected date.")
         return
     else:
         for i in result:
@@ -132,11 +132,18 @@ async def delete_task(callback_query):
     names = Database().select(table_name="Tasks", user_id=callback_query.from_user.id, columns=["name"], date=date)
     inline_kb_delete = InlineKeyboardMarkup()
     if len(names) == 0:
-        await bot.send_message(chat_id=callback_query.from_user.id, text="You don't have any tasks for this day.")
+        await bot.send_message(chat_id=callback_query.from_user.id, text="You have no tasks for selected date.")
         return
     for i in names:
-        inline_kb_delete.add(InlineKeyboardButton(text=i[0], callback_data=i[0]))  # gotta fix a problem w/ callback_data
-    await bot.send_message(chat_id=callback_query.from_user.id, text="Choose task to delete:", reply_markup=inline_kb_delete)
+        inline_kb_delete.add(
+            InlineKeyboardButton(text=i[0], callback_data=i[0]))  # gotta fix a problem w/ callback_data
+    await bot.send_message(chat_id=callback_query.from_user.id, text="Send task's name that you want to delete:",
+                           reply_markup=inline_kb_delete)
+
+    @dp.message_handler()
+    async def task_deleting(message: types.Message):
+        Tasks().delt(date=date, name=message.text)
+        await message.answer("Successfully deleted")
 
 
 # cancel any state
@@ -161,12 +168,12 @@ async def simple_cal_handler(user_id):
 
 
 # dialog calendar usage
-ib_y = InlineKeyboardButton(text="✅", callback_data="yes")
-ib_n = InlineKeyboardButton(text="❌", callback_data="no")
+ib_y = InlineKeyboardButton(text="✅", callback_data="y")
+ib_n = InlineKeyboardButton(text="❌", callback_data="n")
 ikb_agree = InlineKeyboardMarkup().add(ib_y, ib_n)
 
 
-@dp.callback_query_handler(lambda c: c.data == 'yes')
+@dp.callback_query_handler(lambda c: c.data == 'y')
 async def y_agree(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
@@ -181,7 +188,7 @@ async def y_agree(callback_query: types.CallbackQuery):
         await delete_task(callback_query=callback_query)
 
 
-@dp.callback_query_handler(lambda c: c.data == "no")
+@dp.callback_query_handler(lambda c: c.data == "n")
 async def n_agree(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     await bot.send_message(text="You cancelled operation.", chat_id=callback_query.from_user.id)
