@@ -26,6 +26,10 @@ class TaskForm(StatesGroup):
 class DeleteForm(StatesGroup):
     name = State()
 
+class EditForm(StatesGroup):
+    name = State()
+    new_name = State()
+
 
 @dp.message_handler(commands=['start', 'help', 'h', 's'])
 async def send_welcome(message: types.Message):
@@ -37,7 +41,8 @@ async def send_welcome(message: types.Message):
 ib_nt = InlineKeyboardButton("Add task", callback_data="nt")
 ib_st = InlineKeyboardButton("Show tasks", callback_data="st")
 ib_dt = InlineKeyboardButton("Delete task", callback_data="dt")
-inline_kb_choose = InlineKeyboardMarkup().add(ib_nt, ib_st, ib_dt)
+ib_et = InlineKeyboardButton("Edit task", callback_data="et")
+inline_kb_choose = InlineKeyboardMarkup().add(ib_nt, ib_st, ib_dt, ib_et)
 
 
 @dp.message_handler(commands=["t", "tasks"])
@@ -136,7 +141,7 @@ async def delete_task(callback_query):
         return
     for i in names:
         inline_kb_delete.add(
-            InlineKeyboardButton(text=i[0], callback_data=i[0]))  # gotta fix a problem w/ callback_data
+            InlineKeyboardButton(text=i[0], callback_data=i[0]))
     await bot.send_message(chat_id=callback_query.from_user.id, text="Send task's name that you want to delete:",
                            reply_markup=inline_kb_delete)
 
@@ -144,6 +149,66 @@ async def delete_task(callback_query):
     async def task_deleting(message: types.Message):
         Tasks().delt(date=date, name=message.text)
         await message.answer("Successfully deleted")
+
+
+# edit task
+# params for editing
+param_name = InlineKeyboardButton ("name", callback_data="name")
+param_stime = InlineKeyboardButton ("start time", callback_data="stime")
+param_etime = InlineKeyboardButton ("end time", callback_data="etime")
+param_desc = InlineKeyboardButton ("description", callback_data="desc")
+params_keyboard = InlineKeyboardMarkup().add(param_name, param_stime, param_etime, param_desc)
+
+
+@dp.callback_query_handler(lambda c: c.data == "et")
+async def ed_task(callback_query: types.CallbackQuery):
+    Database().update(table_name="Users", columns={"selected_command": "et"}, id=callback_query.from_user.id)
+    await bot.answer_callback_query(callback_query.id)
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+    await simple_cal_handler(callback_query.from_user.id)
+
+
+async def edit_task(callback_query):
+    date = \
+        Database().select(table_name="Users", fetchone=True, id=callback_query.from_user.id,
+                          columns=["selected_date"])[0]
+    names = Database().select(table_name="Tasks", user_id=callback_query.from_user.id, columns=["name"], date=date)
+    inline_kb_edit = InlineKeyboardMarkup()
+    if len(names) == 0:
+        await bot.send_message(chat_id=callback_query.from_user.id, text="You have no tasks for selected date.")
+        return
+    for i in names:
+        inline_kb_edit.add(
+            InlineKeyboardButton(text=i[0], callback_data=i[0]))
+    await bot.send_message(chat_id=callback_query.from_user.id, text="Send task's name that you want to edit:",
+                           reply_markup=inline_kb_edit)
+    await EditForm.name.set()
+######FIIIIIIIXXXXX
+
+@dp.message_handler(state=EditForm.name)
+async def get_name(message: types.Message, state: FSMContext):
+    name = message.text
+    await state.update_data(name=name)
+    await message.answer("Choose what you want to edit:", reply_markup=params_keyboard)
+
+
+# params editing
+@dp.callback_query_handler(lambda c: c.data == 'name')
+async def new_name(callback_query: types.CallbackQuery):
+    print("yes")
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+    await bot.send_message(chat_id=callback_query.from_user.id, text="Enter new name:")
+    await EditForm.new_name.set()
+
+
+@dp.message_handler(state=EditForm.new_name)
+async def edit_name(message: types.Message, state: FSMContext):
+    await state.update_data(new_param = message.text)
+    data = await state.get_data()
+    Database().update(table_name="Tasks", columns={"name": data["new_name"]}, id=message.from_user.id, name=data["name"])
+    await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
+    await state.finish()
+    await message.answer("Successfully edited.")
 
 
 # cancel any state
@@ -156,6 +221,7 @@ async def cancel_handler(message: types.Message, state: FSMContext):
         return
 
     logging.info('Cancelling state %r', current_state)
+    await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
     await message.answer("You cancelled operation.")
     await state.finish()
 
@@ -186,6 +252,8 @@ async def y_agree(callback_query: types.CallbackQuery):
         await show_tasks(callback_query=callback_query)
     elif selected_command == "dt":
         await delete_task(callback_query=callback_query)
+    elif selected_command == "et":
+        await edit_task(callback_query=callback_query)
 
 
 @dp.callback_query_handler(lambda c: c.data == "n")
