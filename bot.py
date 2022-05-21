@@ -26,6 +26,7 @@ class TaskForm(StatesGroup):
 class DeleteForm(StatesGroup):
     name = State()
 
+
 class EditForm(StatesGroup):
     name = State()
     new_name = State()
@@ -144,19 +145,23 @@ async def delete_task(callback_query):
             InlineKeyboardButton(text=i[0], callback_data=i[0]))
     await bot.send_message(chat_id=callback_query.from_user.id, text="Send task's name that you want to delete:",
                            reply_markup=inline_kb_delete)
+    await DeleteForm.name.set()
 
-    @dp.message_handler()
-    async def task_deleting(message: types.Message):
+    @dp.message_handler(state=DeleteForm.name)
+    async def get_del_name(message: types.Message, state: FSMContext):
+        name = message.text
+        await state.update_data(name=name)
         Tasks().delt(date=date, name=message.text)
+        await state.finish()
         await message.answer("Successfully deleted")
 
 
 # edit task
 # params for editing
-param_name = InlineKeyboardButton ("name", callback_data="name")
-param_stime = InlineKeyboardButton ("start time", callback_data="stime")
-param_etime = InlineKeyboardButton ("end time", callback_data="etime")
-param_desc = InlineKeyboardButton ("description", callback_data="desc")
+param_name = InlineKeyboardButton("name", callback_data="name")
+param_stime = InlineKeyboardButton("start time", callback_data="stime")
+param_etime = InlineKeyboardButton("end time", callback_data="etime")
+param_desc = InlineKeyboardButton("description", callback_data="desc")
 params_keyboard = InlineKeyboardMarkup().add(param_name, param_stime, param_etime, param_desc)
 
 
@@ -183,7 +188,9 @@ async def edit_task(callback_query):
     await bot.send_message(chat_id=callback_query.from_user.id, text="Send task's name that you want to edit:",
                            reply_markup=inline_kb_edit)
     await EditForm.name.set()
-######FIIIIIIIXXXXX
+
+
+# FIX
 
 @dp.message_handler(state=EditForm.name)
 async def get_name(message: types.Message, state: FSMContext):
@@ -203,9 +210,10 @@ async def new_name(callback_query: types.CallbackQuery):
 
 @dp.message_handler(state=EditForm.new_name)
 async def edit_name(message: types.Message, state: FSMContext):
-    await state.update_data(new_param = message.text)
+    await state.update_data(new_param=message.text)
     data = await state.get_data()
-    Database().update(table_name="Tasks", columns={"name": data["new_name"]}, id=message.from_user.id, name=data["name"])
+    Database().update(table_name="Tasks", columns={"name": data["new_name"]}, id=message.from_user.id,
+                      name=data["name"])
     await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
     await state.finish()
     await message.answer("Successfully edited.")
