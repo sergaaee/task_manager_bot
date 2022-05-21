@@ -139,15 +139,11 @@ async def delete_task(callback_query):
         Database().select(table_name="Users", fetchone=True, id=callback_query.from_user.id,
                           columns=["selected_date"])[0]
     names = Database().select(table_name="Tasks", user_id=callback_query.from_user.id, columns=["name"], date=date)
-    inline_kb_delete = InlineKeyboardMarkup()
     if len(names) == 0:
         await bot.send_message(chat_id=callback_query.from_user.id, text="You have no tasks for selected date.")
         return
-    for i in names:
-        inline_kb_delete.add(
-            InlineKeyboardButton(text=i[0], callback_data=i[0]))
-    await bot.send_message(chat_id=callback_query.from_user.id, text="Send task's name that you want to delete:",
-                           reply_markup=inline_kb_delete)
+    res = "\n\n".join([i[0] for i in names])
+    await bot.send_message(chat_id=callback_query.from_user.id, text=f"Send task's name that you want to delete:\n\n{res}",)
     await DeleteForm.name.set()
 
     @dp.message_handler(state=DeleteForm.name)
@@ -162,7 +158,7 @@ async def delete_task(callback_query):
             await state.finish()
             await message.answer("Successfully deleted")
         except TypeError:
-            await message.answer("No such a task with the name")
+            await message.answer("Wrong name")
             await delete_task(message)
 
 
@@ -188,15 +184,11 @@ async def edit_task(callback_query):
         Database().select(table_name="Users", fetchone=True, id=callback_query.from_user.id,
                           columns=["selected_date"])[0]
     names = Database().select(table_name="Tasks", user_id=callback_query.from_user.id, columns=["name"], date=date)
-    inline_kb_edit = InlineKeyboardMarkup()
     if len(names) == 0:
         await bot.send_message(chat_id=callback_query.from_user.id, text="You have no tasks for selected date.")
         return
-    for i in names:
-        inline_kb_edit.add(
-            InlineKeyboardButton(text=i[0], callback_data=i[0]))
-    await bot.send_message(chat_id=callback_query.from_user.id, text="Send task's name that you want to edit:",
-                           reply_markup=inline_kb_edit)
+    res = "\n\n".join([i[0] for i in names])
+    await bot.send_message(chat_id=callback_query.from_user.id, text=f"Send task's name that you want to edit:\n\n{res}")
     await EditForm.name.set()
 
 
@@ -209,7 +201,7 @@ async def get_name(message: types.Message, state: FSMContext):
         await state.update_data(name=name)
         await message.answer("Choose what you want to edit:", reply_markup=params_keyboard)
     except TypeError:
-        await message.answer("No such task's name")
+        await message.answer("Wrong name")
         await state.finish()
         await edit_task(callback_query=message)
 
