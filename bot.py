@@ -66,32 +66,28 @@ async def new_task(callback_query: types.CallbackQuery):
 
 @dp.message_handler(state=TaskForm.name)
 async def get_name(message: types.Message, state: FSMContext):
-    name = message.text
-    await state.update_data(name=name)
+    await state.update_data(name=message.text)
     await TaskForm.stime.set()
     await message.answer("When starts?")
 
 
 @dp.message_handler(state=TaskForm.stime)
 async def get_start_time(message: types.Message, state: FSMContext):
-    stime = message.text
-    await state.update_data(stime=stime)
+    await state.update_data(stime=message.text)
     await TaskForm.etime.set()
     await message.answer("When ends?")
 
 
 @dp.message_handler(state=TaskForm.etime)
 async def get_end_time(message: types.Message, state: FSMContext):
-    etime = message.text
-    await state.update_data(etime=etime)
+    await state.update_data(etime=message.text)
     await TaskForm.desc.set()
     await message.answer("Description:")
 
 
 @dp.message_handler(state=TaskForm.desc)
 async def get_desc(message: types.Message, state: FSMContext):
-    desc = message.text
-    await state.update_data(desc=desc)
+    await state.update_data(desc=message.text)
     data = await state.get_data()
     await state.finish()
     date = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["selected_date"])[0]
@@ -149,10 +145,9 @@ async def delete_task(callback_query):
     @dp.message_handler(state=DeleteForm.name)
     async def get_del_name(message: types.Message, state: FSMContext):
         global check
-        name = message.text
-        await state.update_data(name=name)
+        await state.update_data(name=message.text)
         try:
-            check = Database().select(table_name="Tasks", user_id=message.from_user.id, fetchone=True, name=name,
+            check = Database().select(table_name="Tasks", user_id=message.from_user.id, fetchone=True, name=message.text,
                                       columns=["name"])[0]
             Tasks().delt(date=date, name=message.text)
             await state.finish()
@@ -195,10 +190,9 @@ async def edit_task(callback_query):
 @dp.message_handler(state=EditForm.name)
 async def get_name(message: types.Message, state: FSMContext):
     global check
-    name = message.text
     try:
-        check = Database().select(table_name="Tasks", user_id=message.from_user.id, fetchone=True, name=name, columns=["name"])[0]
-        await state.update_data(name=name)
+        check = Database().select(table_name="Tasks", user_id=message.from_user.id, fetchone=True, name=message.text, columns=["name"])[0]
+        await state.update_data(name=message.text)
         await message.answer("Choose what you want to edit:", reply_markup=params_keyboard)
     except TypeError:
         await message.answer("Wrong name")

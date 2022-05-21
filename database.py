@@ -142,6 +142,3 @@ class Tasks(Database):
 
     def delt(self, date, name):
         return self.delete(table_name=self.table, date=date, name=name, )
-
-    def editt(self, ):
-        pass
