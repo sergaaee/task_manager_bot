@@ -39,13 +39,15 @@ class EditForm(StatesGroup):
 @dp.message_handler(commands=['start', 'help', 'h', 's'])
 async def send_welcome(message: types.Message):
     Users().add(message.from_user.id, message.from_user.username)
-    await message.answer('hello message')
+    await message.answer(f"Hello 👋\n\nI'm a bot that will help you to plan your day 😊\n"
+                         f"With me you can easily add, watch, delete, edit tasks that you have to do!"
+                         f"\n\nJust type /t and you will figure out with me 🎯")
 
 
 @dp.message_handler(commands=["t", "tasks"])
-async def first_button(message: types.Message):
+async def act_choosing(message: types.Message):
     await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
-    await message.answer("Choose:", reply_markup=inline_kb_choose)
+    await message.answer("Choose what you want to do:", reply_markup=inline_kb_choose)
 
 
 # new task
@@ -86,7 +88,7 @@ async def get_desc(message: types.Message, state: FSMContext):
     date = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["selected_date"])[0]
     Tasks().addt(name=data['name'], start_time=data['stime'], end_time=data['etime'], user_id=message.from_user.id,
                  desc=data['desc'], date=date)
-    await message.answer("Successfully added")
+    await message.answer("Successfully added ✅")
 
 
 # show tasks
@@ -144,9 +146,9 @@ async def delete_task(callback_query):
                                       columns=["name"])[0]
             Tasks().delt(date=date, name=message.text)
             await state.finish()
-            await message.answer("Successfully deleted")
+            await message.answer("Successfully deleted ✅")
         except TypeError:
-            await message.answer("Wrong name")
+            await message.answer("Wrong name ❌\ntry one more time")
             await delete_task(message)
 
 
@@ -181,7 +183,7 @@ async def get_name(message: types.Message, state: FSMContext):
         await state.update_data(name=message.text)
         await message.answer("Choose what you want to edit:", reply_markup=params_keyboard)
     except TypeError:
-        await message.answer("Wrong name")
+        await message.answer("Wrong name ❌\ntry one more time")
         await state.finish()
         await edit_task(callback_query=message)
 
@@ -202,7 +204,7 @@ async def edit_name(message: types.Message, state: FSMContext):
     Database().update(table_name="Tasks", columns={"name": data["new_name"]}, user_id=message.from_user.id,
                       name=data["name"])
     await state.finish()
-    await message.answer("Name successfully edited.")
+    await message.answer("Name successfully edited ✅")
 
 
 # start time editing
@@ -220,7 +222,7 @@ async def edit_stime(message: types.Message, state: FSMContext):
     Database().update(table_name="Tasks", columns={"start_time": data["new_stime"]}, user_id=message.from_user.id,
                       name=data["name"])
     await state.finish()
-    await message.answer("Start time successfully edited.")
+    await message.answer("Start time successfully edited ✅")
 
 
 # end time editing
@@ -238,25 +240,25 @@ async def edit_etime(message: types.Message, state: FSMContext):
     Database().update(table_name="Tasks", columns={"end_time": data["new_etime"]}, user_id=message.from_user.id,
                       name=data["name"])
     await state.finish()
-    await message.answer("End time successfully edited.")
+    await message.answer("End time successfully edited ✅")
 
 
 # description editing
 @dp.callback_query_handler(lambda c: c.data == 'desc', state=[EditForm.name, EditForm.new_desc])
-async def new_stime(callback_query: types.CallbackQuery):
+async def new_description(callback_query: types.CallbackQuery):
     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
     await bot.send_message(chat_id=callback_query.from_user.id, text="Enter new description:")
     await EditForm.new_desc.set()
 
 
 @dp.message_handler(state=EditForm.new_desc)
-async def edit_stime(message: types.Message, state: FSMContext):
+async def edit_description(message: types.Message, state: FSMContext):
     await state.update_data(new_desc=message.text)
     data = await state.get_data()
     Database().update(table_name="Tasks", columns={"desc": data["new_desc"]}, user_id=message.from_user.id,
                       name=data["name"])
     await state.finish()
-    await message.answer("Description successfully edited.")
+    await message.answer("Description successfully edited ✅")
 
 
 # cancel any state
@@ -265,11 +267,11 @@ async def edit_stime(message: types.Message, state: FSMContext):
 async def cancel_handler(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     if current_state is None:
-        await message.answer("There is no state to cancel")
+        await message.answer("There is no state to cancel ❌")
         return
     logging.info('Cancelling state %r', current_state)
     await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
-    await message.answer("You cancelled operation.")
+    await message.answer("You cancelled operation ✅")
     await state.finish()
 
 
@@ -300,7 +302,7 @@ async def y_agree(callback_query: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data == "n")
 async def n_agree(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
-    await bot.send_message(text="You cancelled operation.", chat_id=callback_query.from_user.id)
+    await bot.send_message(text="You cancelled operation ✅", chat_id=callback_query.from_user.id)
     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
 
 
