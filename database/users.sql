@@ -5,5 +5,6 @@ create table "Users"(
     nick text,
     reg_date datetime,
     selected_date text,
-    selected_command text
+    selected_command text,
+    time_zone integer
 )
