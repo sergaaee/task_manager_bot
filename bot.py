@@ -1,4 +1,4 @@
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import CallbackQuery
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from database import Users, Tasks, Database
 from settings import *
@@ -39,14 +39,6 @@ class EditForm(StatesGroup):
 async def send_welcome(message: types.Message):
     Users().add(message.from_user.id, message.from_user.username)
     await message.answer('hello message')
-
-
-# choose menu
-ib_nt = InlineKeyboardButton("Add task", callback_data="nt")
-ib_st = InlineKeyboardButton("Show tasks", callback_data="st")
-ib_dt = InlineKeyboardButton("Delete task", callback_data="dt")
-ib_et = InlineKeyboardButton("Edit task", callback_data="et")
-inline_kb_choose = InlineKeyboardMarkup().add(ib_nt, ib_st, ib_dt, ib_et)
 
 
 @dp.message_handler(commands=["t", "tasks"])
@@ -158,13 +150,6 @@ async def delete_task(callback_query):
 
 
 # edit task
-# params for editing
-param_name = InlineKeyboardButton("name", callback_data="name")
-param_stime = InlineKeyboardButton("start time", callback_data="stime")
-param_etime = InlineKeyboardButton("end time", callback_data="etime")
-param_desc = InlineKeyboardButton("description", callback_data="desc")
-params_keyboard = InlineKeyboardMarkup().add(param_name, param_stime, param_etime, param_desc)
-
 
 @dp.callback_query_handler(lambda c: c.data == "et")
 async def ed_task(callback_query: types.CallbackQuery):
@@ -292,12 +277,6 @@ async def cancel_handler(message: types.Message, state: FSMContext):
 async def simple_cal_handler(user_id):
     await bot.send_message(text="Please select a date: ", chat_id=user_id,
                            reply_markup=await DialogCalendar().start_calendar())
-
-
-# dialog calendar usage
-ib_y = InlineKeyboardButton(text="✅", callback_data="y")
-ib_n = InlineKeyboardButton(text="❌", callback_data="n")
-ikb_agree = InlineKeyboardMarkup().add(ib_y, ib_n)
 
 
 @dp.callback_query_handler(lambda c: c.data == 'y')
