@@ -19,3 +19,6 @@ class EditForm(StatesGroup):
     new_stime = State()
     new_etime = State()
     new_desc = State()
+
+class TimeZoneForm(StatesGroup):
+    zone = State()
