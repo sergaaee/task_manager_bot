@@ -4,9 +4,9 @@ from database import Users, Tasks, Database
 from settings import *
 from keyboards import inline_kb_choose, params_keyboard, ikb_agree
 import logging
+from states import *
 from aiogram.dispatcher.filters import Text
 from aiogram import Bot, Dispatcher, executor, types
-from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
 from aiogram_calendar import dialog_cal_callback, DialogCalendar
 
@@ -14,26 +14,6 @@ from aiogram_calendar import dialog_cal_callback, DialogCalendar
 storage = MemoryStorage()
 bot = Bot(token=token)
 dp = Dispatcher(bot, storage=storage)
-
-
-# forms for states
-class TaskForm(StatesGroup):
-    name = State()
-    stime = State()
-    etime = State()
-    desc = State()
-
-
-class DeleteForm(StatesGroup):
-    name = State()
-
-
-class EditForm(StatesGroup):
-    name = State()
-    new_name = State()
-    new_stime = State()
-    new_etime = State()
-    new_desc = State()
 
 
 @dp.message_handler(commands=['start', 'help', 'h', 's'])
@@ -109,7 +89,7 @@ async def show_tasks(callback_query):
     for each in data:
         result.append("name: " + each[0] + ",\nstarts at: " + each[1] + ",\nends at: " + each[2] + ",\n" + each[3])
     if len(result) == 0:
-        await bot.send_message(chat_id=callback_query.from_user.id, text="You have no tasks for selected date.")
+        await bot.send_message(chat_id=callback_query.from_user.id, text="You have no tasks for selected date ❌")
         return
     else:
         for i in result:
