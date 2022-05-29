@@ -62,8 +62,12 @@ async def set_time_zone(message: types.Message, state: FSMContext):
 # showing bot's menu
 @dp.message_handler(commands=["t", "tasks"])
 async def act_choosing(message: types.Message):
-    await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
-    await message.answer("Choose what you want to do:", reply_markup=inline_kb_choose)
+    if not Database().select(table_name="Users", columns="time_zone", id=message.from_user.id):
+        await message.answer("I'm sorry, but I can't work with out knowledge of your time zone")
+        await ask_time_zone(message)
+    else:
+        await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
+        await message.answer("Choose what you want to do:", reply_markup=inline_kb_choose)
 
 
 # new task
@@ -112,28 +116,26 @@ async def get_desc(message: types.Message, state: FSMContext):
     time_zone = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["time_zone"])[0]
     start_hour = data['stime'][:data['stime'].find(":")]
     start_minutes = data['stime'][data['stime'].find(":")+1:]
-    if int(start_hour) < 10:
-        start_w_tz = int(start_hour) - int(time_zone)
+    start_w_tz = int(start_hour) - int(time_zone)
+    if int(start_w_tz) < 10:
         if int(start_minutes) < 10:
             start_time = f"0{start_w_tz}:0{start_minutes}"
         else:
             start_time = f"0{start_w_tz}:{start_minutes}"
     else:
-        start_w_tz = int(start_hour) - int(time_zone)
         if int(start_minutes) < 10:
             start_time = f"{start_w_tz}:0{start_minutes}"
         else:
             start_time = f"{start_w_tz}:{start_minutes}"
     end_hour = data['etime'][:data['etime'].find(":")]
     end_minutes = data['etime'][data['etime'].find(":")+1:]
-    if int(end_hour) < 10:
-        end_w_tz = int(end_hour) - int(time_zone)
+    end_w_tz = int(end_hour) - int(time_zone)
+    if int(end_w_tz) < 10:
         if int(end_minutes) < 10:
             end_time = f"0{end_w_tz}:0{end_minutes}"
         else:
             end_time = f"0{end_w_tz}:{end_minutes}"
     else:
-        end_w_tz = int(end_hour) - int(time_zone)
         if int(end_minutes) < 10:
             end_time = f"{end_w_tz}:0{end_minutes}"
         else:
@@ -279,14 +281,13 @@ async def edit_stime(message: types.Message, state: FSMContext):
         time_zone = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["time_zone"])[0]
         start_hour = data['new_stime'][:data['new_stime'].find(":")]
         start_minutes = data['new_stime'][data['new_stime'].find(":")+1:]
-        if int(start_hour) < 10:
-            start_w_tz = int(start_hour) - int(time_zone)
+        start_w_tz = int(start_hour) - int(time_zone)
+        if int(start_w_tz) < 10:
             if int(start_minutes) < 10:
                 start_time = f"0{start_w_tz}:0{start_minutes}"
             else:
                 start_time = f"0{start_w_tz}:{start_minutes}"
         else:
-            start_w_tz = int(start_hour) - int(time_zone)
             if int(start_minutes) < 10:
                 start_time = f"{start_w_tz}:0{start_minutes}"
             else:
@@ -316,14 +317,13 @@ async def edit_etime(message: types.Message, state: FSMContext):
         time_zone = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["time_zone"])[0]
         end_hour = data['new_etime'][:data['new_etime'].find(":")]
         end_minutes = data['new_etime'][data['new_etime'].find(":")+1:]
-        if int(end_hour) < 10:
-            end_w_tz = int(end_hour) - int(time_zone)
+        end_w_tz = int(end_hour) - int(time_zone)
+        if int(end_w_tz) < 10:
             if int(end_minutes) < 10:
                 end_time = f"0{end_w_tz}:0{end_minutes}"
             else:
                 end_time = f"0{end_w_tz}:{end_minutes}"
         else:
-            end_w_tz = int(end_hour) - int(time_zone)
             if int(end_minutes) < 10:
                 end_time = f"{end_w_tz}:0{end_minutes}"
             else:
@@ -415,8 +415,15 @@ async def user_list():
 
     while True:
         await sleep(60)
-        users = Tasks().notification()
-        print(users)
+        start_time, users = Tasks().notification()
+        if len(users) == 0:
+            continue
+        else:
+            for user_id in users[0]:
+                info = Database().select(table_name="Tasks", fetchone=False, user_id=user_id, start_time=start_time, columns=["name", "end_time", "desc"])
+                to_send = f"Your task begins:\n\nname: {info[0][0]}\nends at: {info[0][1]}\ndescription: {info[0][2]}"
+                await bot.send_message(chat_id=user_id, text=to_send)
+
 
 async def start_check(dispatcher: Dispatcher):
     """List of actions which should be done before bot start"""
