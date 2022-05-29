@@ -24,9 +24,10 @@ async def send_welcome(message: types.Message):
                          f"\n\nJust send /tz and you will figure out with me 🎯")
 
 
+# setting up time zone
 @dp.message_handler(commands=["timezone", "tz"])
 async def ask_time_zone(message: types.Message):
-    await message.answer(f"Okay, let's first of all set up your time zone\n"
+    await message.answer(f"Okay, let's set up your time zone\n"
                          f"I need it for send you notification when time's up for your tasks\n"
                          f"Just send me in format from UTC\n"
                          f"Example: if you from Israel send +3\n"
@@ -43,11 +44,11 @@ async def set_time_zone(message: types.Message, state: FSMContext):
             Database().update(table_name="Users", columns={"time_zone": user_zone}, id=message.from_user.id)
             await state.finish()
             await message.answer(f"You successfully set your time zone up ✅\n\n"
-                                 f"Now you ready-to-go\n"
+                                 f"Now you are ready-to-go\n"
                                  f"Just type /t and enjoy! 😉")
         else:
             await message.answer(f"Time zone {message.text} is incorrect ❌\n"
-                                 f"Time zone should be form -12 to +14 🤕")
+                                 f"Time zone should be from -12 to +14 🤕")
             await state.finish()
             await TimeZoneForm.zone.set()
     except ValueError:
@@ -57,6 +58,7 @@ async def set_time_zone(message: types.Message, state: FSMContext):
         await TimeZoneForm.zone.set()
 
 
+# showing bot's menu
 @dp.message_handler(commands=["t", "tasks"])
 async def act_choosing(message: types.Message):
     await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
@@ -81,16 +83,24 @@ async def get_name(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=TaskForm.stime)
 async def get_start_time(message: types.Message, state: FSMContext):
-    await state.update_data(stime=message.text)
-    await TaskForm.etime.set()
-    await message.answer("When ends?")
+    if message.text.find(":") == -1:
+        await message.answer(f"Incorrect time ❌\n"
+                             f"please enter in format: HH:MM")
+    else:
+        await state.update_data(stime=message.text)
+        await TaskForm.etime.set()
+        await message.answer("When ends?")
 
 
 @dp.message_handler(state=TaskForm.etime)
 async def get_end_time(message: types.Message, state: FSMContext):
-    await state.update_data(etime=message.text)
-    await TaskForm.desc.set()
-    await message.answer("Description:")
+    if message.text.find(":") == -1:
+        await message.answer(f"Incorrect time ❌\n"
+                             f"please enter in format: HH:MM")
+    else:
+        await state.update_data(etime=message.text)
+        await TaskForm.desc.set()
+        await message.answer("Description:")
 
 
 @dp.message_handler(state=TaskForm.desc)
@@ -98,8 +108,17 @@ async def get_desc(message: types.Message, state: FSMContext):
     await state.update_data(desc=message.text)
     data = await state.get_data()
     await state.finish()
+    time_zone = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["time_zone"])[0]
+    start_hour = data['stime'][:data['stime'].find(":")]
+    start_minutes = data['stime'][data['stime'].find(":"):]
+    start_w_tz = int(start_hour) - int(time_zone)
+    start_time = f"{start_w_tz}:{start_minutes}"
+    end_hour = data['etime'][:data['etime'].find(":")]
+    end_minutes = data['etime'][data['etime'].find(":"):]
+    end_w_tz = int(end_hour) - int(time_zone)
+    end_time = f"{end_w_tz}{end_minutes}"
     date = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["selected_date"])[0]
-    Tasks().addt(name=data['name'], start_time=data['stime'], end_time=data['etime'], user_id=message.from_user.id,
+    Tasks().addt(name=data['name'], start_time=start_time, end_time=end_time, user_id=message.from_user.id,
                  desc=data['desc'], date=date)
     await message.answer("Successfully added ✅")
 
@@ -230,12 +249,21 @@ async def new_stime(callback_query: types.CallbackQuery):
 
 @dp.message_handler(state=EditForm.new_stime)
 async def edit_stime(message: types.Message, state: FSMContext):
-    await state.update_data(new_stime=message.text)
-    data = await state.get_data()
-    Database().update(table_name="Tasks", columns={"start_time": data["new_stime"]}, user_id=message.from_user.id,
-                      name=data["name"])
-    await state.finish()
-    await message.answer("Start time successfully edited ✅")
+    if message.text.find(":") == -1:
+        await message.answer(f"Incorrect time ❌\n"
+                             f"please enter in format: HH:MM")
+    else:
+        await state.update_data(new_stime=message.text)
+        data = await state.get_data()
+        time_zone = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["time_zone"])[0]
+        start_hour = data['new_stime'][:data['new_stime'].find(":")]
+        start_minutes = data['new_stime'][data['new_stime'].find(":"):]
+        start_w_tz = int(start_hour) - int(time_zone)
+        start_time = f"{start_w_tz}{start_minutes}"
+        Database().update(table_name="Tasks", columns={"start_time": start_time}, user_id=message.from_user.id,
+                          name=data["name"])
+        await state.finish()
+        await message.answer("Start time successfully edited ✅")
 
 
 # end time editing
@@ -248,12 +276,21 @@ async def new_etime(callback_query: types.CallbackQuery):
 
 @dp.message_handler(state=EditForm.new_etime)
 async def edit_etime(message: types.Message, state: FSMContext):
-    await state.update_data(new_etime=message.text)
-    data = await state.get_data()
-    Database().update(table_name="Tasks", columns={"end_time": data["new_etime"]}, user_id=message.from_user.id,
-                      name=data["name"])
-    await state.finish()
-    await message.answer("End time successfully edited ✅")
+    if message.text.find(":") == -1:
+        await message.answer(f"Incorrect time ❌\n"
+                             f"please enter in format: HH:MM")
+    else:
+        await state.update_data(new_etime=message.text)
+        data = await state.get_data()
+        time_zone = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["time_zone"])[0]
+        end_hour = data['new_etime'][:data['new_etime'].find(":")]
+        end_minutes = data['new_etime'][data['new_etime'].find(":"):]
+        end_w_tz = int(end_hour) - int(time_zone)
+        end_time = f"{end_w_tz}{end_minutes}"
+        Database().update(table_name="Tasks", columns={"end_time": end_time}, user_id=message.from_user.id,
+                          name=data["name"])
+        await state.finish()
+        await message.answer("End time successfully edited ✅")
 
 
 # description editing

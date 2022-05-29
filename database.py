@@ -1,6 +1,8 @@
 from datetime import datetime
 import logging
 import sqlite3
+from time import gmtime, strftime
+
 
 logger = logging.getLogger(__name__)
 
@@ -142,3 +144,8 @@ class Tasks(Database):
 
     def delt(self, date, name):
         return self.delete(table_name=self.table, date=date, name=name, )
+    
+    def notification(self, ):
+        date = strftime("%d/%m/%Y", gmtime())
+        start_time = strftime("%H:%M", gmtime())
+        check = self.select(table_name=self.table, fetchone=False, columns=['user_id',], date=date, start_time=start_time)
