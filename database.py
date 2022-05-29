@@ -148,4 +148,4 @@ class Tasks(Database):
     def notification(self, ):
         date = strftime("%d/%m/%Y", gmtime())
         start_time = strftime("%H:%M", gmtime())
-        check = self.select(table_name=self.table, fetchone=False, columns=['user_id',], date=date, start_time=start_time)
+        return date, start_time, self.select(table_name=self.table, fetchone=False, columns=['user_id'], date=date, start_time=start_time)

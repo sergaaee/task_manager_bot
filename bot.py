@@ -4,6 +4,7 @@ from database import Users, Tasks, Database
 from settings import *
 from keyboards import inline_kb_choose, params_keyboard, ikb_agree
 import logging
+from asyncio import create_task, sleep
 from states import *
 from aiogram.dispatcher.filters import Text
 from aiogram import Bot, Dispatcher, executor, types
@@ -110,13 +111,33 @@ async def get_desc(message: types.Message, state: FSMContext):
     await state.finish()
     time_zone = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["time_zone"])[0]
     start_hour = data['stime'][:data['stime'].find(":")]
-    start_minutes = data['stime'][data['stime'].find(":"):]
-    start_w_tz = int(start_hour) - int(time_zone)
-    start_time = f"{start_w_tz}:{start_minutes}"
+    start_minutes = data['stime'][data['stime'].find(":")+1:]
+    if int(start_hour) < 10:
+        start_w_tz = int(start_hour) - int(time_zone)
+        if int(start_minutes) < 10:
+            start_time = f"0{start_w_tz}:0{start_minutes}"
+        else:
+            start_time = f"0{start_w_tz}:{start_minutes}"
+    else:
+        start_w_tz = int(start_hour) - int(time_zone)
+        if int(start_minutes) < 10:
+            start_time = f"{start_w_tz}:0{start_minutes}"
+        else:
+            start_time = f"{start_w_tz}:{start_minutes}"
     end_hour = data['etime'][:data['etime'].find(":")]
-    end_minutes = data['etime'][data['etime'].find(":"):]
-    end_w_tz = int(end_hour) - int(time_zone)
-    end_time = f"{end_w_tz}{end_minutes}"
+    end_minutes = data['etime'][data['etime'].find(":")+1:]
+    if int(end_hour) < 10:
+        end_w_tz = int(end_hour) - int(time_zone)
+        if int(end_minutes) < 10:
+            end_time = f"0{end_w_tz}:0{end_minutes}"
+        else:
+            end_time = f"0{end_w_tz}:{end_minutes}"
+    else:
+        end_w_tz = int(end_hour) - int(time_zone)
+        if int(end_minutes) < 10:
+            end_time = f"{end_w_tz}:0{end_minutes}"
+        else:
+            end_time = f"{end_w_tz}:{end_minutes}"
     date = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["selected_date"])[0]
     Tasks().addt(name=data['name'], start_time=start_time, end_time=end_time, user_id=message.from_user.id,
                  desc=data['desc'], date=date)
@@ -257,9 +278,19 @@ async def edit_stime(message: types.Message, state: FSMContext):
         data = await state.get_data()
         time_zone = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["time_zone"])[0]
         start_hour = data['new_stime'][:data['new_stime'].find(":")]
-        start_minutes = data['new_stime'][data['new_stime'].find(":"):]
-        start_w_tz = int(start_hour) - int(time_zone)
-        start_time = f"{start_w_tz}{start_minutes}"
+        start_minutes = data['new_stime'][data['new_stime'].find(":")+1:]
+        if int(start_hour) < 10:
+            start_w_tz = int(start_hour) - int(time_zone)
+            if int(start_minutes) < 10:
+                start_time = f"0{start_w_tz}:0{start_minutes}"
+            else:
+                start_time = f"0{start_w_tz}:{start_minutes}"
+        else:
+            start_w_tz = int(start_hour) - int(time_zone)
+            if int(start_minutes) < 10:
+                start_time = f"{start_w_tz}:0{start_minutes}"
+            else:
+                start_time = f"{start_w_tz}:{start_minutes}"
         Database().update(table_name="Tasks", columns={"start_time": start_time}, user_id=message.from_user.id,
                           name=data["name"])
         await state.finish()
@@ -284,9 +315,19 @@ async def edit_etime(message: types.Message, state: FSMContext):
         data = await state.get_data()
         time_zone = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["time_zone"])[0]
         end_hour = data['new_etime'][:data['new_etime'].find(":")]
-        end_minutes = data['new_etime'][data['new_etime'].find(":"):]
-        end_w_tz = int(end_hour) - int(time_zone)
-        end_time = f"{end_w_tz}{end_minutes}"
+        end_minutes = data['new_etime'][data['new_etime'].find(":")+1:]
+        if int(end_hour) < 10:
+            end_w_tz = int(end_hour) - int(time_zone)
+            if int(end_minutes) < 10:
+                end_time = f"0{end_w_tz}:0{end_minutes}"
+            else:
+                end_time = f"0{end_w_tz}:{end_minutes}"
+        else:
+            end_w_tz = int(end_hour) - int(time_zone)
+            if int(end_minutes) < 10:
+                end_time = f"{end_w_tz}:0{end_minutes}"
+            else:
+                end_time = f"{end_w_tz}:{end_minutes}"
         Database().update(table_name="Tasks", columns={"end_time": end_time}, user_id=message.from_user.id,
                           name=data["name"])
         await state.finish()
@@ -326,7 +367,6 @@ async def cancel_handler(message: types.Message, state: FSMContext):
 
 
 # calendar
-
 async def simple_cal_handler(user_id):
     await bot.send_message(text="Please select a date: ", chat_id=user_id,
                            reply_markup=await DialogCalendar().start_calendar())
@@ -369,8 +409,22 @@ async def process_dialog_calendar(callback_query: CallbackQuery, callback_data: 
         )
 
 
+# notifications
+async def user_list():
+    """background task which is created when bot starts"""
+
+    while True:
+        await sleep(60)
+        users = Tasks().notification()
+        print(users)
+
+async def start_check(dispatcher: Dispatcher):
+    """List of actions which should be done before bot start"""
+    create_task(user_list())  # creates background task
+
+
 if __name__ == '__main__':
     # Configure logging
     logging.basicConfig(level=logging.INFO)
     # bot start
-    executor.start_polling(dp, skip_updates=True)
+    executor.start_polling(dp, skip_updates=True, on_startup=start_check)
