@@ -13,7 +13,7 @@ class Database:
 
         :rtype: object
         """
-        self._con = sqlite3.connect('database/db')
+        self._con = sqlite3.connect('db')
 
     def insert_into(self, table_name, **kwargs) -> bool:
         cursor = self._con.cursor()
