@@ -1,6 +1,6 @@
-drop table "tasks";
+drop table "Tasks";
 
-create TABLE "tasks" (
+create TABLE "Tasks" (
     id integer unique primary key AUTOINCREMENT,
     name text,
     date text,

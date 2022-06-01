@@ -2,6 +2,7 @@ from datetime import datetime
 import logging
 import sqlite3
 from time import gmtime, strftime
+from settings import DB_PATH
 
 
 logger = logging.getLogger(__name__)
@@ -13,7 +14,7 @@ class Database:
 
         :rtype: object
         """
-        self._con = sqlite3.connect('database/db')
+        self._con = sqlite3.connect(DB_PATH)
 
     def insert_into(self, table_name, **kwargs) -> bool:
         cursor = self._con.cursor()
