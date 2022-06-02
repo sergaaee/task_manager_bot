@@ -13,7 +13,7 @@ async def find_tasks(callback_query: types.CallbackQuery):
     await simple_cal_handler(user_id=callback_query.from_user.id)
 
 
-async def show_tasks(callback_query):
+async def show_tasks(callback_query: types.CallbackQuery) -> ():
     date = \
         Database().select(table_name="Users", fetchone=True, id=callback_query.from_user.id,
                           columns=["selected_date"])[0]

@@ -8,7 +8,7 @@ from states import TaskForm
 
 
 # calendar
-async def simple_cal_handler(user_id):
+async def simple_cal_handler(user_id: int):
     await bot.send_message(text="Please select a date: ", chat_id=user_id,
                            reply_markup=await DialogCalendar().start_calendar())
 

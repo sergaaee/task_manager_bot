@@ -15,7 +15,7 @@ async def del_task(callback_query: types.CallbackQuery):
     await simple_cal_handler(callback_query.from_user.id)
 
 
-async def delete_task(callback_query):
+async def delete_task(callback_query: types.CallbackQuery) -> ():
     date = \
         Database().select(table_name="Users", fetchone=True, id=callback_query.from_user.id,
                           columns=["selected_date"])[0]
