@@ -11,7 +11,7 @@ async def ask_time_zone(message: types.Message):
     await message.answer(f"Okay, let's set up your time zone\n"
                          f"I need it for send you notification when time's up for your tasks\n"
                          f"Just send me in format from UTC\n"
-                         f"Example: if you from Israel send +3\n"
+                         f"Example: if you from Israel send +2\n"
                          f"if you from Brazil send -3")
     await TimeZoneForm.zone.set()
 

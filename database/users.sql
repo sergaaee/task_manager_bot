@@ -6,5 +6,6 @@ create table "Users"(
     reg_date datetime,
     selected_date text,
     selected_command text,
-    time_zone integer
+    time_zone integer,
+    sharing_id text
 )

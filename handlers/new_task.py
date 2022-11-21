@@ -24,24 +24,43 @@ async def get_name(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=TaskForm.stime)
 async def get_start_time(message: types.Message, state: FSMContext):
-    if message.text.find(":") == -1:
+    try:
+        if message.text.find(":") == -1 \
+                or message.text.__len__() > 5 \
+                or int(message.text[:2]) > 24 \
+                or int(message.text[:2]) < 0 \
+                or int(message.text[3:]) > 60 \
+                or int(message.text[3:]) < 0:
+            await message.answer(f"Incorrect time ❌\n"
+                                 f"please enter in format: HH:MM")
+        else:
+            await state.update_data(stime=message.text)
+            await TaskForm.etime.set()
+            await message.answer("When ends?")
+    except ValueError:
         await message.answer(f"Incorrect time ❌\n"
                              f"please enter in format: HH:MM")
-    else:
-        await state.update_data(stime=message.text)
-        await TaskForm.etime.set()
-        await message.answer("When ends?")
 
 
 @dp.message_handler(state=TaskForm.etime)
 async def get_end_time(message: types.Message, state: FSMContext):
-    if message.text.find(":") == -1:
+    try:
+        if message.text.find(":") == -1 \
+                or message.text.__len__() > 5 \
+                or int(message.text[:2]) > 24 \
+                or int(message.text[:2]) < 0 \
+                or int(message.text[3:]) > 60 \
+                or int(message.text[3:]) < 0:
+            await message.answer(f"Incorrect time ❌\n"
+                                 f"please enter in format: HH:MM")
+        else:
+            await state.update_data(etime=message.text)
+            await TaskForm.desc.set()
+            await message.answer("Description:")
+    except ValueError:
         await message.answer(f"Incorrect time ❌\n"
                              f"please enter in format: HH:MM")
-    else:
-        await state.update_data(etime=message.text)
-        await TaskForm.desc.set()
-        await message.answer("Description:")
+
 
 
 @dp.message_handler(state=TaskForm.desc)
@@ -51,7 +70,7 @@ async def get_desc(message: types.Message, state: FSMContext):
     await state.finish()
     time_zone = Database().select(table_name="Users", fetchone=True, id=message.from_user.id, columns=["time_zone"])[0]
     start_hour = data['stime'][:data['stime'].find(":")]
-    start_minutes = data['stime'][data['stime'].find(":")+1:]
+    start_minutes = data['stime'][data['stime'].find(":") + 1:]
     start_w_tz = int(start_hour) - int(time_zone)
     if int(start_w_tz) < 10:
         if int(start_minutes) < 10 and "0" not in start_minutes:
@@ -64,7 +83,7 @@ async def get_desc(message: types.Message, state: FSMContext):
         else:
             start_time = f"{start_w_tz}:{start_minutes}"
     end_hour = data['etime'][:data['etime'].find(":")]
-    end_minutes = data['etime'][data['etime'].find(":")+1:]
+    end_minutes = data['etime'][data['etime'].find(":") + 1:]
     end_w_tz = int(end_hour) - int(time_zone)
     if int(end_w_tz) < 10:
         if int(end_minutes) < 10 and "0" not in end_minutes:
