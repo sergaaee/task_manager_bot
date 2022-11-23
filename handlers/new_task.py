@@ -62,7 +62,6 @@ async def get_end_time(message: types.Message, state: FSMContext):
                              f"please enter in format: HH:MM")
 
 
-
 @dp.message_handler(state=TaskForm.desc)
 async def get_desc(message: types.Message, state: FSMContext):
     await state.update_data(desc=message.text)

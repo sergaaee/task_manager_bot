@@ -1,4 +1,4 @@
-from handlers.welcome_message import send_welcome
+from handlers.welcome_messages import send_welcome
 from handlers.time_zone import ask_time_zone
 from handlers.bots_menu import act_choosing
 from handlers.new_task import new_task
